@@ -46,6 +46,26 @@ int IPM_diff = 0;
 vector<Point2f> origPoints;
 vector<Point2f> dstPoints;
 
+int bottom_center = 160;
+int sum_centerline = 0;
+int count_centerline = 0;
+int first_centerline = 0;
+int last_centerline = 0;
+double avr_center_to_left = 0;
+double avr_center_to_right = 0;
+
+double center_to_right = -1;
+double center_to_left = -1; 
+
+int centerline = 0;
+
+int diff = 0;
+
+int degree = 0;
+
+int counter = 0;
+int move_mouse_pixel = 0;
+
 int main(int argc, char** argv)
 {
   // Check if video source has been passed as a parameter, 파라미터가 없으면아예 실행이 안됨..
@@ -97,7 +117,8 @@ int main(int argc, char** argv)
   //clock_t begin = clock();
 
   //ros::Rate loop_rate(5);
-  while (nh.ok()) {
+  while (nh.ok()) 
+  {
     cap >> frame;
 
     ipm.applyHomography(frame, outputFrame);
@@ -109,7 +130,7 @@ int main(int argc, char** argv)
     cv::imshow("outputFrame", outputFrame);
 
     cv::cvtColor(outputFrame, gray, COLOR_RGB2GRAY);
-    cv::blur(gray, blur, cv::Size(5,5));
+    cv::blur(gray, blur, cv::Size(15,15));
     cv::Sobel(blur, sobel, blur.depth(), 1, 0, 3, 0.5, 127);
     cv::threshold(sobel, contours, 145, 255, CV_THRESH_BINARY);
 
@@ -122,7 +143,66 @@ int main(int argc, char** argv)
 
     // --------- 자율주행  -------------
 
-    if(!frame.empty()) {
+    		////////////////////////////////////////////
+		// 자율 주행 
+
+		bottom_center = 160;
+		sum_centerline = 0;
+		count_centerline = 0;
+		first_centerline = 0;
+		last_centerline = 0;
+		avr_center_to_left = 0;
+		avr_center_to_right = 0;
+
+		//#pragma omp parallel for
+		for(int i=240; i>30; i--)
+    {
+			center_to_right = -1;
+			center_to_left = -1;
+
+			for (int j=0;j<150;j++) 
+      {
+				if (contours.at<uchar>(i, bottom_center+j) == 112 && center_to_right == -1) 
+        {
+					center_to_right = j;
+				}
+				if (contours.at<uchar>(i, bottom_center-j) == 112 && center_to_left == -1) 
+        {
+					center_to_left = j;
+				}
+			}
+			if(center_to_left!=-1 && center_to_right!=-1)
+      {
+				centerline = (center_to_right - center_to_left +2*bottom_center)/2;
+				if (first_centerline == 0 ) 
+        {
+					first_centerline = centerline;
+				}
+				sum_centerline += centerline;
+				avr_center_to_left = (avr_center_to_left * count_centerline + center_to_left)/count_centerline+1;
+				avr_center_to_right = (avr_center_to_right * count_centerline + center_to_right)/count_centerline+1;
+				last_centerline = centerline;
+				count_centerline++;
+			} else {}
+		}
+    
+    diff = 0;
+
+    if (count_centerline!=0)
+    {
+      diff = sum_centerline/count_centerline - bottom_center;
+      degree = atan2 (last_centerline - first_centerline, count_centerline) * 180 / PI;
+      move_mouse_pixel = 0 - counter + diff;
+      ROS_INFO("move_mouse_pixel = %d", move_mouse_pixel);
+      ROS_INFO("degree msg = %d", degree);
+
+      counter = diff;
+    }
+
+
+
+    if(!frame.empty()) 
+    {
       msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
       pub.publish(msg);
       cv::waitKey(1);
