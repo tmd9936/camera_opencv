@@ -107,9 +107,9 @@ find_package (OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES learning_image_transport
-  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs
+#  INCLUDE_DIRS include
+#  LIBRARIES ${PROJECT_NAME}
+#  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -124,16 +124,23 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
-add_executable(image_publisher src/pub.cpp)
+
+add_executable(image_publisher src/pub.cpp src/linefinder.cpp src/IPM.cpp)
 target_link_libraries(image_publisher ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(image_listener src/sub.cpp)
 target_link_libraries(image_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+
+
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/learning_image_transport.cpp
-# )
+#add_library(${PROJECT_NAME}
+#  src/IPM.cc
+  # src/linefinder.cpp
+#)
+
+
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -182,18 +189,18 @@ target_link_libraries(image_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+#install(TARGETS ${PROJECT_NAME}
+#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+#)
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
+#install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
-# )
+#)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
