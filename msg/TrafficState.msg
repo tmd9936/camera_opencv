@@ -1,3 +1,3 @@
-int16 degree
+int16 line_state
 int16 station_area
 int16 traffic_color

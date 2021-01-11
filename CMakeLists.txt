@@ -8,6 +8,7 @@ project(camera_opencv)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  message_generation
   cv_bridge
   image_transport
   roscpp
@@ -51,11 +52,9 @@ find_package (OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES TrafficState.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,10 +71,11 @@ find_package (OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   sensor_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  # sensor_msgs 
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

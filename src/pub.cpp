@@ -31,6 +31,9 @@
 #include <IPM.h>
 #include <std_msgs/Int16.h>
 
+#include <camera_opencv/TrafficState.h>
+
+
 #define PI 3.1415926
 
 using namespace std;
@@ -80,10 +83,10 @@ int main(int argc, char** argv)
   image_transport::Publisher image_pub = it.advertise("camera/image", 1);
 
   // 데이터 전송용 퍼블리셔
-  ros::Publisher traffic_pub = nh.advertise<std_msgs::Int16>("line_state",1);
+  ros::Publisher traffic_pub = nh.advertise<camera_opencv::TrafficState>("traffic_state",1);
 
-  std_msgs::Int16 line_state_msg;
-  line_state_msg.data = 0;
+  camera_opencv::TrafficState traffic_state_msg;
+  traffic_state_msg.line_state = 0;
 
   // Convert the passed as command line parameter index for the video device to an integer
   std::istringstream video_sourceCmd(argv[1]);
@@ -111,6 +114,7 @@ int main(int argc, char** argv)
 
   vector<vector<Point>> rect_cont;
   vector<Point2f> approx;
+  int approx_size = 0;
 
   Scalar lower_red = Scalar(160, 20, 100);
   Scalar upper_red = Scalar(179, 255, 255);
@@ -174,6 +178,7 @@ int main(int argc, char** argv)
 		last_centerline = 0;
 		avr_center_to_left = 0;
 		avr_center_to_right = 0;
+    degree = 0;
 
 		//#pragma omp parallel for
 		for(int i=240; i>30; i--)
@@ -220,12 +225,9 @@ int main(int argc, char** argv)
 
       counter = diff;
 
-      line_state_msg.data = degree;
       
     }
-    
-    // 라인 degree 퍼블리싱
-    traffic_pub.publish(line_state_msg);
+    traffic_state_msg.line_state = degree;
 
     // ---------  주차 구역 검출  ------------- 
     cv::cvtColor(outputFrame, frame_hsv, COLOR_BGR2HSV);
@@ -247,6 +249,7 @@ int main(int argc, char** argv)
 
     // 사각형 검출
     cv::findContours(red_mask, rect_cont, RETR_LIST, CHAIN_APPROX_SIMPLE);
+    approx_size = 0;
 
     for(size_t i=0; i<rect_cont.size(); i++)
     {
@@ -254,33 +257,42 @@ int main(int argc, char** argv)
 
       if(fabs(contourArea(Mat(approx))) > 100)
       {
-        int size = approx.size();
+        approx_size = approx.size();
 
-        if (size % 2 == 0) {
+        if (approx_size % 2 == 0) {
 				line(red_mask, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
-          for (int k = 0; k < size - 1; k++)
+          for (int k = 0; k < approx_size - 1; k++)
             line(red_mask, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 
-          for (int k = 0; k < size; k++)
+          for (int k = 0; k < approx_size; k++)
             circle(red_mask, approx[k], 3, Scalar(0, 0, 255));
 			  }
         else {
           line(red_mask, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
-          for (int k = 0; k < size - 1; k++)
+          for (int k = 0; k < approx_size - 1; k++)
             line(red_mask, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 
-          for (int k = 0; k < size; k++)
+          for (int k = 0; k < approx_size; k++)
             circle(red_mask, approx[k], 3, Scalar(0, 0, 255));
         }
 
         // 꼭지점의 개수가 4개일때 출력
         //if(size == 4 && isContourConvex(Mat(approx)))
-        ROS_INFO("size = %d", size);
 
       }
+      
     }
+      
+    traffic_state_msg.station_area = approx_size;
+    
+    traffic_state_msg.traffic_color = 1;
+    
+    //ROS_INFO("line_state = %d", traffic_state_msg.line_state);
+    //ROS_INFO("station_area = %d", traffic_state_msg.station_area);
+    // 라인 degree 퍼블리싱
+    traffic_pub.publish(traffic_state_msg);
 
     cv::imshow("red_mask", red_mask);
 
