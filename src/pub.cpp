@@ -26,8 +26,10 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sstream> // for converting the command line parameter to integer
 
+
 #include <linefinder.h>
 #include <IPM.h>
+#include <std_msgs/Int16.h>
 
 #define PI 3.1415926
 
@@ -68,13 +70,20 @@ int move_mouse_pixel = 0;
 
 int main(int argc, char** argv)
 {
-  // Check if video source has been passed as a parameter, 파라미터가 없으면아예 실행이 안됨..
+  // Check if video source has been passed as a parameter, 파라미터가 없으면 아예 실행이 안됨..
   if(argv[1] == NULL) return 1;
 	
-  ros::init(argc, argv, "image_publisher");
+  ros::init(argc, argv, "camera_opencv_node");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
-  image_transport::Publisher pub = it.advertise("camera/image", 1);
+  // 이미지 보여주기용 퍼블리셔
+  image_transport::Publisher image_pub = it.advertise("camera/image", 1);
+
+  // 데이터 전송용 퍼블리셔
+  ros::Publisher traffic_pub = nh.advertise<std_msgs::Int16>("line_state",1);
+
+  std_msgs::Int16 line_state_msg;
+  line_state_msg.data = 0;
 
   // Convert the passed as command line parameter index for the video device to an integer
   std::istringstream video_sourceCmd(argv[1]);
@@ -90,9 +99,24 @@ int main(int argc, char** argv)
   
   // Check if video device can be opened with the given index
   if(!cap.isOpened()) return 1;
+  // 선분검출용 mat 데이터
   cv::Mat frame, outputFrame;
   cv::UMat gray, blur, sobel;
   cv::Mat contours;
+
+  // 주차구역 검출용 mat 데이터
+  cv::Mat frame_hsv;
+  cv::Mat red_mask, red_frame;
+  cv::Mat red_image;
+
+  vector<vector<Point>> rect_cont;
+  vector<Point2f> approx;
+
+  Scalar lower_red = Scalar(160, 20, 100);
+  Scalar upper_red = Scalar(179, 255, 255);
+
+  ///////
+
   IPM ipm;
   LineFinder ld;
 
@@ -139,12 +163,9 @@ int main(int argc, char** argv)
     std::vector<cv::Vec4i> li = ld.findLines(contours);
     ld.drawDetectedLines(contours);
     
-    cv::imshow("contours", contours);
+    //cv::imshow("contours", contours);
 
-    // --------- 자율주행  -------------
-
-    		////////////////////////////////////////////
-		// 자율 주행 
+    // ---------  자율주행용 차선의 라디안 추출  -------------
 
 		bottom_center = 160;
 		sum_centerline = 0;
@@ -193,18 +214,80 @@ int main(int argc, char** argv)
       diff = sum_centerline/count_centerline - bottom_center;
       degree = atan2 (last_centerline - first_centerline, count_centerline) * 180 / PI;
       move_mouse_pixel = 0 - counter + diff;
-      ROS_INFO("move_mouse_pixel = %d", move_mouse_pixel);
-      ROS_INFO("degree msg = %d", degree);
+
+      //ROS_INFO("move_mouse_pixel = %d", move_mouse_pixel);
+      //ROS_INFO("degree msg = %d", degree);
 
       counter = diff;
+
+      line_state_msg.data = degree;
+      
+    }
+    
+    // 라인 degree 퍼블리싱
+    traffic_pub.publish(line_state_msg);
+
+    // ---------  주차 구역 검출  ------------- 
+    cv::cvtColor(outputFrame, frame_hsv, COLOR_BGR2HSV);
+
+    cv::inRange(frame_hsv, lower_red, upper_red, red_mask);
+
+
+    	//morphological opening 작은 점들을 제거 
+		erode(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+
+		//morphological closing 영역의 구멍 메우기 
+		dilate(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		erode(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+    //cv::bitwise_and(outputFrame, outputFrame, red_image, red_mask);
+    
+    //cv::imshow("red_image", red_image);
+
+    // 사각형 검출
+    cv::findContours(red_mask, rect_cont, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+    for(size_t i=0; i<rect_cont.size(); i++)
+    {
+      approxPolyDP(Mat(rect_cont[i]), approx, arcLength(Mat(rect_cont[i]), true)*0.02, true);
+
+      if(fabs(contourArea(Mat(approx))) > 100)
+      {
+        int size = approx.size();
+
+        if (size % 2 == 0) {
+				line(red_mask, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+          for (int k = 0; k < size - 1; k++)
+            line(red_mask, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+
+          for (int k = 0; k < size; k++)
+            circle(red_mask, approx[k], 3, Scalar(0, 0, 255));
+			  }
+        else {
+          line(red_mask, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+          for (int k = 0; k < size - 1; k++)
+            line(red_mask, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+
+          for (int k = 0; k < size; k++)
+            circle(red_mask, approx[k], 3, Scalar(0, 0, 255));
+        }
+
+        // 꼭지점의 개수가 4개일때 출력
+        //if(size == 4 && isContourConvex(Mat(approx)))
+        ROS_INFO("size = %d", size);
+
+      }
     }
 
-
+    cv::imshow("red_mask", red_mask);
 
     if(!frame.empty()) 
     {
       msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
-      pub.publish(msg);
+      image_pub.publish(msg);
       cv::waitKey(1);
     }
 

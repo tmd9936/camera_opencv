@@ -1,0 +1,3 @@
+int16 degree
+int16 station_area
+int16 traffic_color
