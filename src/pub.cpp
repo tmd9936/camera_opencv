@@ -36,8 +36,6 @@
 
 #define PI 3.1415926
 
-/////////////////test/////////////////
-
 using namespace std;
 using namespace cv;
 
@@ -286,6 +284,24 @@ int main(int argc, char** argv)
       }
       
     }
+
+    // ---------  신호등 색 검출  -------------
+    Mat frame_light;
+    ipm.applyHomography(frame, frame_light);
+
+    // frame_light를 입/출력으로 동시에 쓰기 때문에 2번 씀.
+    // resize(frame_light, frame_light, Size(cols, rows));
+    // Range 클래스는 Mat 클래스에서 행 또는 열 범위를 지정하는 템플릿 클래스
+    // Range(start, end) -> start포함, end 포함x
+    // frame_light = frame_light(Range::all(), Range(40,280));
+    cv::imshow("frame_light", frame_light);
+    // -------------------------------------
+
+
+
+
+
+
       
     traffic_state_msg.station_area = approx_size;
     
