@@ -334,14 +334,16 @@ int main(int argc, char** argv)
 
       string color = "none";
       // 수정 필요한 곳
-      if(mean_hue_light > 20 && mean_hue_light < 50) {
+      if(mean_hue_light > 30 && mean_hue_light < 60 || mean_hue_light > 180) {
         color = "red";
-	traffic_state_msg.traffic_color = 0;
+	      traffic_state_msg.traffic_color = 0;
       } else if(mean_hue_light > 70 && mean_hue_light < 100) {
         color = "green";
-	traffic_state_msg.traffic_color = 1;
+	      traffic_state_msg.traffic_color = 1;
       }
       putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
+      Point center_plus_y(cvRound(circles[i][0]), cvRound(circles[i][1])+20);
+      putText(frame_light, to_string(mean_hue_light), center_plus_y, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
 
       imshow("traffic_light", frame_light);
     }
