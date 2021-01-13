@@ -74,6 +74,8 @@ int degree = 0;
 int counter = 0;
 int move_mouse_pixel = 0;
 
+int light_status = 0; // 현재 신호등 상태
+
 int main(int argc, char** argv)
 {
   // Check if video source has been passed as a parameter, 파라미터가 없으면 아예 실행이 안됨..
@@ -307,6 +309,7 @@ int main(int argc, char** argv)
     HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 100, 60, 80, 30, 90);
 
     // ROS_INFO("cnt = %d", circles.size());
+    
     for(size_t i = 0; i < circles.size(); i++){
       Point center(circles[i][0], circles[i][1]);
       int radius = circles[i][2];
@@ -350,10 +353,10 @@ int main(int argc, char** argv)
         // 수정 필요한 곳
         if(mean_hue_light > 30 && mean_hue_light < 60 || mean_hue_light > 170) {
           color = "red";
-          traffic_state_msg.traffic_color = RED;
+          light_status = RED;
         } else if(mean_hue_light > 80 && mean_hue_light < 110) {
           color = "green";
-          traffic_state_msg.traffic_color = GREEN;
+          light_status = GREEN;
         }
         putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
         Point center_plus_y(circles[i][0], circles[i][1]+20);
@@ -370,7 +373,8 @@ int main(int argc, char** argv)
 
     traffic_state_msg.station_area = approx_size;
     
-    //traffic_state_msg.traffic_color = 1;
+    traffic_state_msg.traffic_color = light_status;
+    // ROS_INFO("light_status = %d", light_status);
     
     //ROS_INFO("line_state = %d", traffic_state_msg.line_state);
     //ROS_INFO("station_area = %d", traffic_state_msg.station_area);
@@ -378,7 +382,7 @@ int main(int argc, char** argv)
     traffic_pub.publish(traffic_state_msg);
     cv::imshow("red_mask", red_mask);
     
-    imshow("frame", frame);
+    // imshow("frame", frame);
 
     if(!frame.empty()) 
     {
