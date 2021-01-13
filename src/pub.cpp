@@ -289,19 +289,63 @@ int main(int argc, char** argv)
     Mat frame_light;
     ipm.applyHomography(frame, frame_light);
 
-    // frame_light를 입/출력으로 동시에 쓰기 때문에 2번 씀.
-    // resize(frame_light, frame_light, Size(cols, rows));
     // Range 클래스는 Mat 클래스에서 행 또는 열 범위를 지정하는 템플릿 클래스
     // Range(start, end) -> start포함, end 포함x
-    // frame_light = frame_light(Range::all(), Range(40,280));
-    cv::imshow("frame_light", frame_light);
+    frame_light = frame_light(Range(0, frame_light.size().height * 2/3), Range::all());
+
+    Mat gray_light;
+    cvtColor(frame_light, gray_light, CV_BGR2GRAY);
+    Mat blur_light;
+    GaussianBlur(gray_light, blur_light, Size(0,0), 1.0);
+
+    // 원 검출
+    vector<Vec3f> circles;
+    // 수정 필요한 곳
+    HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 50, 120, 50, 50, 90);
+
+    for(size_t i = 0; i < circles.size(); i++){
+      Point center(cvRound(circles[i][0]), cvRound(circles[i][1])));
+      int radius = cvRound(circles[i][2]);
+      circle(frame_light, center, radius, Scalar(0,0,255), 3, 8, 0);
+
+      int x1 = int(cvRound(circles[i][0] - radius));
+      int y1 = int(cvRound(circles[i][1] - radius));
+      Rect rect(x1, y1, 2 * radius, 2 * radius);
+      Mat crop_light = frame(rect);
+      //imshow("crop", crop);
+
+      int cw = rect.size().width;
+      int ch = rect.size().height;
+
+      // 신호등 영역 ROI mask 영상
+      Mat mask_light(cw, ch, CV_8UC1, Scalar::all(0));
+      Point crop_center(int(cw / 2), int(ch / 2));
+      circle(mask_light, crop_center, radius, Scalar::all(255) , -1, 8, 0);
+      //imshow("mask", mask);
+
+      // 색 인식
+      Mat hsv_light;
+      cvtColor(crop_light, hsv_light, CV_BGR2HSV);
+      vector<Mat> channels;
+      split(hsv_light, channels);
+      channels[0] += 30;
+      merge(channels, hsv_light);
+
+      float mean_hue_light = mean(hsv_light, mask_light)[0];
+      // printf("%f \n", mean_hue_light);
+
+      string color = "none";
+      // 수정 필요한 곳
+      if(mean_hue_light > 0 && mean_hue_light < 50) {
+        color = "red"; // 숫자 뭘로 할지
+      } else if(mean_hue_light > 90 && mean_hue_light < 150) {
+        color = "green"; // 숫자 정하기
+      }
+      putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
+
+      imshow("traffic_light", frame_light);
+    }
     // -------------------------------------
-
-
-
-
-
-
       
     traffic_state_msg.station_area = approx_size;
     
