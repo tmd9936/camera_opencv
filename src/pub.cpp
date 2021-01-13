@@ -289,8 +289,6 @@ int main(int argc, char** argv)
     Mat frame_light;
     ipm.applyHomography(frame, frame_light);
 
-    // Range 클래스는 Mat 클래스에서 행 또는 열 범위를 지정하는 템플릿 클래스
-    // Range(start, end) -> start포함, end 포함x
     frame_light = frame_light(Range(0, frame_light.size().height * 2/3), Range::all());
 
     Mat gray_light;
@@ -304,7 +302,7 @@ int main(int argc, char** argv)
     HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 50, 120, 50, 50, 90);
 
     for(size_t i = 0; i < circles.size(); i++){
-      Point center(cvRound(circles[i][0]), cvRound(circles[i][1])));
+      Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
       int radius = cvRound(circles[i][2]);
       circle(frame_light, center, radius, Scalar(0,0,255), 3, 8, 0);
 
