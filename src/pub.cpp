@@ -36,6 +36,9 @@
 
 #define PI 3.1415926
 
+#define RED 0
+#define GREEN 1
+
 using namespace std;
 using namespace cv;
 
@@ -287,8 +290,10 @@ int main(int argc, char** argv)
 
     // ---------  신호등 색 검출  -------------
     Mat frame_light;
-    ipm.applyHomography(frame, frame_light);
 
+    // frame.copyTo(frame_light);
+    frame_light = frame.clone();
+    
     frame_light = frame_light(Range(0, frame_light.size().height * 2/3), Range::all());
 
     Mat gray_light;
@@ -299,56 +304,70 @@ int main(int argc, char** argv)
     // 원 검출
     vector<Vec3f> circles;
     // 수정 필요한 곳
-    HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 50, 120, 50, 50, 90);
+    HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 100, 60, 80, 30, 90);
 
+    // ROS_INFO("cnt = %d", circles.size());
     for(size_t i = 0; i < circles.size(); i++){
-      Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-      int radius = cvRound(circles[i][2]);
+      Point center(circles[i][0], circles[i][1]);
+      int radius = circles[i][2];
       circle(frame_light, center, radius, Scalar(0,0,255), 3, 8, 0);
 
-      int x1 = int(cvRound(circles[i][0] - radius));
-      int y1 = int(cvRound(circles[i][1] - radius));
-      Rect rect(x1, y1, 2 * radius, 2 * radius);
-      Mat crop_light = frame(rect);
-      //imshow("crop", crop);
+      int x1 = int(circles[i][0] - radius);
+      int y1 = int(circles[i][1] - radius);
+      Rect rect(x1, y1, 2*radius, 2*radius);
 
-      int cw = rect.size().width;
-      int ch = rect.size().height;
+      // ROS_INFO("rect.x = %d", rect.x);
+      // ROS_INFO("rect.y = %d", rect.y);
+      // ROS_INFO("rect.width = %d", rect.width);
+      // ROS_INFO("rect.height = %d", rect.height);
 
-      // 신호등 영역 ROI mask 영상
-      Mat mask_light(cw, ch, CV_8UC1, Scalar::all(0));
-      Point crop_center(int(cw / 2), int(ch / 2));
-      circle(mask_light, crop_center, radius, Scalar::all(255) , -1, 8, 0);
-      //imshow("mask", mask);
+      if(rect.x >= 0 && rect.y >= 0 && rect.width >= 0 && rect.height >= 0 && rect.width + rect.x < frame_light.cols && rect.height + rect.y < frame_light.rows) {
 
-      // 색 인식
-      Mat hsv_light;
-      cvtColor(crop_light, hsv_light, CV_BGR2HSV);
-      vector<Mat> channels;
-      split(hsv_light, channels);
-      channels[0] += 30;
-      merge(channels, hsv_light);
+        Mat crop_light = frame_light(rect);
+        imshow("crop", crop_light);
 
-      float mean_hue_light = mean(hsv_light, mask_light)[0];
-      // printf("%f \n", mean_hue_light);
+        int cw = rect.width;
+        int ch = rect.height;
 
-      string color = "none";
-      // 수정 필요한 곳
-      if(mean_hue_light > 30 && mean_hue_light < 60 || mean_hue_light > 180) {
-        color = "red";
-	      traffic_state_msg.traffic_color = 0;
-      } else if(mean_hue_light > 70 && mean_hue_light < 100) {
-        color = "green";
-	      traffic_state_msg.traffic_color = 1;
+        // 신호등 영역 ROI mask 영상
+        Mat mask_light(cw, ch, CV_8UC1, Scalar::all(0));
+        Point crop_center(int(cw / 2), int(ch / 2));
+        circle(mask_light, crop_center, radius, Scalar::all(255) , -1, 8, 0);
+        imshow("mask", mask_light);
+
+        // 색 인식
+        Mat hsv_light;
+        cvtColor(crop_light, hsv_light, CV_BGR2HSV);
+        vector<Mat> channels;
+        split(hsv_light, channels);
+        channels[0] += 30;
+        merge(channels, hsv_light);
+
+        float mean_hue_light = mean(hsv_light, mask_light)[0];
+        // printf("%f \n", mean_hue_light);
+
+        string color = "none";
+        // 수정 필요한 곳
+        if(mean_hue_light > 30 && mean_hue_light < 60 || mean_hue_light > 170) {
+          color = "red";
+          traffic_state_msg.traffic_color = RED;
+        } else if(mean_hue_light > 80 && mean_hue_light < 110) {
+          color = "green";
+          traffic_state_msg.traffic_color = GREEN;
+        }
+        putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
+        Point center_plus_y(circles[i][0], circles[i][1]+20);
+        putText(frame_light, to_string(mean_hue_light), center_plus_y, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
+
+        waitKey(1);
       }
-      putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
-      Point center_plus_y(cvRound(circles[i][0]), cvRound(circles[i][1])+20);
-      putText(frame_light, to_string(mean_hue_light), center_plus_y, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
-
-      imshow("traffic_light", frame_light);
     }
+
     // -------------------------------------
-      
+
+    imshow("traffic_light", frame_light);
+
+
     traffic_state_msg.station_area = approx_size;
     
     //traffic_state_msg.traffic_color = 1;
@@ -357,8 +376,9 @@ int main(int argc, char** argv)
     //ROS_INFO("station_area = %d", traffic_state_msg.station_area);
     // 라인 degree 퍼블리싱
     traffic_pub.publish(traffic_state_msg);
-
     cv::imshow("red_mask", red_mask);
+    
+    imshow("frame", frame);
 
     if(!frame.empty()) 
     {
