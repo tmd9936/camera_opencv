@@ -334,9 +334,9 @@ int main(int argc, char** argv)
 
       string color = "none";
       // 수정 필요한 곳
-      if(mean_hue_light > 0 && mean_hue_light < 50) {
+      if(mean_hue_light > 20 && mean_hue_light < 50) {
         color = "red"; // 숫자 뭘로 할지
-      } else if(mean_hue_light > 90 && mean_hue_light < 150) {
+      } else if(mean_hue_light > 70 && mean_hue_light < 100) {
         color = "green"; // 숫자 정하기
       }
       putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
