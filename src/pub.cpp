@@ -74,7 +74,7 @@ int degree = 0;
 int counter = 0;
 int move_mouse_pixel = 0;
 
-int light_status = 0; // 현재 신호등 상태
+int light_status = GREEN; // 현재 신호등 상태
 
 int main(int argc, char** argv)
 {
@@ -327,7 +327,7 @@ int main(int argc, char** argv)
       if(rect.x >= 0 && rect.y >= 0 && rect.width >= 0 && rect.height >= 0 && rect.width + rect.x < frame_light.cols && rect.height + rect.y < frame_light.rows) {
 
         Mat crop_light = frame_light(rect);
-        imshow("crop", crop_light);
+        // imshow("crop", crop_light);
 
         int cw = rect.width;
         int ch = rect.height;
@@ -336,7 +336,7 @@ int main(int argc, char** argv)
         Mat mask_light(cw, ch, CV_8UC1, Scalar::all(0));
         Point crop_center(int(cw / 2), int(ch / 2));
         circle(mask_light, crop_center, radius, Scalar::all(255) , -1, 8, 0);
-        imshow("mask", mask_light);
+        // imshow("mask", mask_light);
 
         // 색 인식
         Mat hsv_light;
