@@ -335,9 +335,11 @@ int main(int argc, char** argv)
       string color = "none";
       // 수정 필요한 곳
       if(mean_hue_light > 20 && mean_hue_light < 50) {
-        color = "red"; // 숫자 뭘로 할지
+        color = "red";
+	traffic_state_msg.traffic_color = 0;
       } else if(mean_hue_light > 70 && mean_hue_light < 100) {
-        color = "green"; // 숫자 정하기
+        color = "green";
+	traffic_state_msg.traffic_color = 1;
       }
       putText(frame_light, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
 
@@ -347,7 +349,7 @@ int main(int argc, char** argv)
       
     traffic_state_msg.station_area = approx_size;
     
-    traffic_state_msg.traffic_color = 1;
+    //traffic_state_msg.traffic_color = 1;
     
     //ROS_INFO("line_state = %d", traffic_state_msg.line_state);
     //ROS_INFO("station_area = %d", traffic_state_msg.station_area);
