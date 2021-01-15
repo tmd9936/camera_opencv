@@ -21,25 +21,29 @@ using namespace std;
 
 // 해당 세터 메소드들
 // 누적기에 해상도 설정
-void LineFinder::setAccResolution(double dRho, double dTheta) {
+void LineFinder::setAccResolution(double dRho, double dTheta)
+{
 	deltaRho = dRho;
 	deltaTheta = dTheta;
 }
 
 // 투표 최소 개수 설정
-void LineFinder::setMinVote(int minv) {
+void LineFinder::setMinVote(int minv)
+{
 	minVote = minv;
 }
 
 // 선 길이와 간격 설정
-void LineFinder::setLineLengthAndGap(double length, double gap) {
+void LineFinder::setLineLengthAndGap(double length, double gap)
+{
 	minLength = length;
 	maxGap = gap;
 }
 
 // 허프 선 세그먼트 감지를 수행하는 메소드
 // 확률적 허프 변환 적용
-std::vector<cv::Vec4i> LineFinder::findLines(cv::Mat& binary) {
+std::vector<cv::Vec4i> LineFinder::findLines(cv::Mat &binary)
+{
 	UMat gpuBinary = binary.getUMat(ACCESS_RW);
 	lines.clear();
 	cv::HoughLinesP(gpuBinary, lines, deltaRho, deltaTheta, minVote, minLength, maxGap);
@@ -48,14 +52,16 @@ std::vector<cv::Vec4i> LineFinder::findLines(cv::Mat& binary) {
 
 // 위 메소드에서 감지한 선을 다음 메소드를 사용해서 그림
 // 영상에서 감지된 선을 그리기
-void LineFinder::drawDetectedLines(cv::Mat &image, cv::Scalar color) {
+void LineFinder::drawDetectedLines(cv::Mat &image, cv::Scalar color)
+{
 
 	UMat gpuImage = image.getUMat(ACCESS_RW);
 	// 선 그리기
 	std::vector<cv::Vec4i>::const_iterator it2 = lines.begin();
 	cv::Point endPoint;
 
-	while (it2 != lines.end()) {
+	while (it2 != lines.end())
+	{
 		cv::Point startPoint((*it2)[0], (*it2)[1]);
 		endPoint = cv::Point((*it2)[2], (*it2)[3]);
 		cv::line(gpuImage, startPoint, endPoint, color, 3);
