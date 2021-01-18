@@ -72,6 +72,8 @@ int degree = 0;
 int counter = 0;
 int move_mouse_pixel = 0;
 
+int is_two_line = 0;
+
 int main(int argc, char **argv)
 {
 	// Check if video source has been passed as a parameter, 파라미터가 없으면 아예 실행이 안됨..
@@ -171,7 +173,7 @@ int main(int argc, char **argv)
 		std::vector<cv::Vec4i> li = ld.findLines(contours);
 		ld.drawDetectedLines(contours);
 
-		//cv::imshow("contours", contours);
+		cv::imshow("contours", contours);
 
 		//morphological opening 작은 점들을 제거
 		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
@@ -273,15 +275,24 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-		ROS_INFO("diff %d", int(diff));
-		ROS_INFO("move_mouse_pixel %d", int(move_mouse_pixel));
-		ROS_INFO("degree %d", int(degree));
+		//ROS_INFO("diff %d", int(diff));
+		//ROS_INFO("move_mouse_pixel %d", int(move_mouse_pixel));
+		ROS_INFO("count_centerline %d", count_centerline);
 
 		//ROS_INFO("li.size %d", li.size());
 
 
 		//traffic_state_msg.line_state = degree;
 		traffic_state_msg.line_state = diff;
+		if(count_centerline == 0 )
+		{
+			traffic_state_msg.is_two_line = 0;
+		}
+		else
+		{
+			traffic_state_msg.is_two_line = 1;
+		}
+		
 
 		// ---------  주차 구역 검출  -------------
 		cv::cvtColor(outputFrame, frame_hsv, COLOR_BGR2HSV);
