@@ -52,7 +52,7 @@ int IPM_diff = 0;
 vector<Point2f> origPoints;
 vector<Point2f> dstPoints;
 
-int bottom_center = 160;
+int bottom_center = 320;
 int sum_centerline = 0;
 int count_centerline = 0;
 int first_centerline = 0;
@@ -152,13 +152,13 @@ int main(int argc, char **argv)
 	while (nh.ok())
 	{
 		cap >> frame;
-
+		//cv::imshow("frame", frame);
 		ipm.applyHomography(frame, outputFrame);
 
 		// ---------  선분 검출 -------------
 
-		cv::resize(outputFrame, outputFrame, cv::Size(320, 240));
-		outputFrame = outputFrame(Range::all(), Range(40, 280));
+		//cv::resize(outputFrame, outputFrame, cv::Size(640, 480));
+		outputFrame = outputFrame(Range::all(), Range(80, width));
 		//cv::imshow("outputFrame", outputFrame);
 
 		cv::cvtColor(outputFrame, gray, COLOR_RGB2GRAY);
@@ -173,9 +173,18 @@ int main(int argc, char **argv)
 
 		//cv::imshow("contours", contours);
 
+		//morphological opening 작은 점들을 제거
+		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+		//morphological closing 영역의 구멍 메우기
+		dilate(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
 		// ---------  자율주행용 차선의 라디안 추출  -------------
 
-		bottom_center = 160;
+		bottom_center = width/2 - 50;
 		sum_centerline = 0;
 		count_centerline = 0;
 		first_centerline = 0;
@@ -183,14 +192,15 @@ int main(int argc, char **argv)
 		avr_center_to_left = 0;
 		avr_center_to_right = 0;
 		degree = 0;
+		diff = 0;
 
 		//#pragma omp parallel for
-		for (int i = 240; i > 30; i--)
+		for (int i = height; i > 0; i--)
 		{
 			center_to_right = -1;
 			center_to_left = -1;
 
-			for (int j = 0; j < 150; j++)
+			for (int j = 0; j < width/2; j++)
 			{
 				if (contours.at<uchar>(i, bottom_center + j) == 112 && center_to_right == -1)
 				{
@@ -213,13 +223,14 @@ int main(int argc, char **argv)
 				avr_center_to_right = (avr_center_to_right * count_centerline + center_to_right) / count_centerline + 1;
 				last_centerline = centerline;
 				count_centerline++;
+
 			}
 			else
 			{
 			}
 		}
 
-		diff = 0;
+				
 
 		if (count_centerline != 0)
 		{
@@ -231,9 +242,46 @@ int main(int argc, char **argv)
 			//ROS_INFO("degree msg = %d", degree);
 
 			counter = diff;
+
+			if(move_mouse_pixel == 0){
+				if(IPM_diff > 0){
+					IPM_RIGHT -= 1;
+					IPM_LEFT -= 1;
+					IPM_diff -= 1;
+				}
+				else if(IPM_diff < 0){
+					IPM_RIGHT += 1;
+					IPM_LEFT += 1;
+					IPM_diff += 1;
+				}
+				else{
+					IPM_RIGHT = width/2+380;
+					IPM_LEFT = width/2-380;
+					IPM_diff = 0;
+				}
+			}
+			else{
+				if (IPM_diff >= -30 && IPM_diff <= 30){
+					IPM_RIGHT += move_mouse_pixel;
+					IPM_LEFT += move_mouse_pixel;
+					if(move_mouse_pixel > 0){
+						IPM_diff++;
+					}
+					else{
+						IPM_diff--;
+					}
+				}
+			}
 		}
+		ROS_INFO("diff %d", int(diff));
+		ROS_INFO("move_mouse_pixel %d", int(move_mouse_pixel));
+		ROS_INFO("degree %d", int(degree));
+
+		//ROS_INFO("li.size %d", li.size());
+
+
 		//traffic_state_msg.line_state = degree;
-		traffic_state_msg.line_state = move_mouse_pixel;
+		traffic_state_msg.line_state = diff;
 
 		// ---------  주차 구역 검출  -------------
 		cv::cvtColor(outputFrame, frame_hsv, COLOR_BGR2HSV);
@@ -247,6 +295,7 @@ int main(int argc, char **argv)
 		//morphological closing 영역의 구멍 메우기
 		dilate(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 		erode(red_mask, red_mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
 		//cv::bitwise_and(outputFrame, outputFrame, red_image, red_mask);
 
 		//cv::imshow("red_image", red_image);
@@ -365,7 +414,7 @@ int main(int argc, char **argv)
 				Point center_plus_y(circles[i][0], circles[i][1] + 20);
 				putText(frame_light, to_string(mean_hue_light), center_plus_y, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
 
-				waitKey(1);
+				//waitKey(1);
 			}
 		}
 
