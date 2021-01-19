@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 	while (nh.ok())
 	{
 		cap >> frame;
-		cv::imshow("frame", frame);
+		//cv::imshow("frame", frame);
 		ipm.applyHomography(frame, outputFrame);
 
 		ROS_INFO("pass_chg_amount_value = %d", pass_chg_amount_value);
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 		outputFrame = outputFrame(Range::all(), Range(80, width));
 
 		// 560, 480
-		cv::imshow("outputFrame", outputFrame);
+		//cv::imshow("outputFrame", outputFrame);
 
 		cv::cvtColor(outputFrame, gray, COLOR_RGB2GRAY);
 		cv::blur(gray, blur, cv::Size(15, 15));
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 		std::vector<cv::Vec4i> lines = ld.findLines(contours);
 		ld.drawDetectedLines(contours);
 
-		cv::imshow("contours", contours);
+		//cv::imshow("contours", contours);
 
 		//morphological opening 작은 점들을 제거
 		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
