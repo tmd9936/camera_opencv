@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
 		
 		int deviation = steering_angle - 90;
-		ROS_INFO("deviation  %d", deviation);
+		// ROS_INFO("deviation  %d", deviation);
 
 
 		// 라인 관련 메세지(라인 각도, 라인 수)
@@ -441,7 +441,6 @@ int main(int argc, char **argv)
 					if(approx_size == 4 && isContourConvex(Mat(approx)))
 					{
 						approx_size = 4;
-						ROS_INFO("station!!");
 					}
 					else 
 					{
