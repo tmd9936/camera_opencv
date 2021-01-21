@@ -37,8 +37,6 @@
 #define RED 0
 #define GREEN 1
 
-#define CENTER_VALUE 479
-
 using namespace std;
 using namespace cv;
 
@@ -54,30 +52,14 @@ int IPM_diff = 0;
 vector<Point2f> origPoints;
 vector<Point2f> dstPoints;
 
-int pass_chg_amount_value = 120;
-
 // 선검출
 int deviation = 0;
 
-//
-int centerline = 0;
-int diff = 0;
 
-int degree = 0;
 
-int counter = 0;
-int move_mouse_pixel = 0;
-
-int line_count = 0;
-int pre_line_count = 0;
-
-bool left_push = false;
-bool right_push = false;
-
-void initParams(ros::NodeHandle *nh_priv)
-{
-	nh_priv->param("pass_chg_amount_value", pass_chg_amount_value, pass_chg_amount_value);
-}
+// void initParams(ros::NodeHandle *nh_priv)
+// {
+// }
 
 int main(int argc, char **argv)
 {
@@ -93,8 +75,8 @@ int main(int argc, char **argv)
 
 	// 데이터 전송용 퍼블리셔
 	ros::Publisher traffic_pub = nh.advertise<camera_opencv::TrafficState>("traffic_state", 1);
-	ros::NodeHandle nh_priv{"~"};
-	initParams(&nh_priv);
+	//ros::NodeHandle nh_priv{"~"};
+	//initParams(&nh_priv);
 
 	camera_opencv::TrafficState traffic_state_msg;
 	traffic_state_msg.line_state = 0;
@@ -226,7 +208,6 @@ int main(int argc, char **argv)
 		double left_region_boundary = width * (1.0 - boundary);
 		double right_region_boundary = width * (boundary);
 
-
 		for(auto &line_segment : line_segments)
 		{
 			
@@ -246,7 +227,6 @@ int main(int argc, char **argv)
 				if (x1 < left_region_boundary && x2 < left_region_boundary)
 				{
 					left_fit.push_back(Point2f(slope, intercept));
-					left_push = true;
 				}
 			}
 			else
@@ -254,7 +234,6 @@ int main(int argc, char **argv)
 				if(x1 > right_region_boundary && x2 > right_region_boundary)
 				{
 					right_fit.push_back(Point2f(slope, intercept));
-					right_push = true;
 				}
 			}
 
