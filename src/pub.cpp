@@ -40,8 +40,8 @@
 using namespace std;
 using namespace cv;
 
-int width = 640;
-int height = 480;
+int width = 320;
+int height = 240;
 
 double IPM_BOTTOM_RIGHT = width + 100;
 double IPM_BOTTOM_LEFT = -100;
