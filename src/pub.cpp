@@ -55,11 +55,12 @@ vector<Point2f> dstPoints;
 // 선검출
 int deviation = 0;
 
+double boundary = 0.15;
 
-
-// void initParams(ros::NodeHandle *nh_priv)
-// {
-// }
+void initParams(ros::NodeHandle *nh_priv)
+{
+	nh_priv->param("boundary", boundary, boundary);
+}
 
 int main(int argc, char **argv)
 {
@@ -75,8 +76,8 @@ int main(int argc, char **argv)
 
 	// 데이터 전송용 퍼블리셔
 	ros::Publisher traffic_pub = nh.advertise<camera_opencv::TrafficState>("traffic_state", 1);
-	//ros::NodeHandle nh_priv{"~"};
-	//initParams(&nh_priv);
+	ros::NodeHandle nh_priv{"~"};
+	initParams(&nh_priv);
 
 	camera_opencv::TrafficState traffic_state_msg;
 	traffic_state_msg.line_state = 0;
@@ -98,15 +99,15 @@ int main(int argc, char **argv)
 	if (!cap.isOpened())
 		return 1;
 	// 선분검출용
-	cv::Mat frame, outputFrame, view_frame, new_frame ,canny;
+	cv::Mat frame, outputFrame, view_frame, new_frame, canny;
 	cv::UMat gray, blur, sobel;
 	cv::Mat contours, region_mask, edges_mask;
 
 	vector<Point> polygon;
 	polygon.push_back(Point(0, height));
-	polygon.push_back(Point(0,  height/2));
-	polygon.push_back(Point(width , height/2));
-	polygon.push_back(Point(width , height));
+	polygon.push_back(Point(0, height / 2));
+	polygon.push_back(Point(width, height / 2));
+	polygon.push_back(Point(width, height));
 
 	// 왼쪽 오른쪽 구역 직선의 방성식을 얻기위한 mat 데이터
 	cv::Mat slice_line_mat = cv::Mat::zeros(height, width, CV_8SC1);
@@ -161,9 +162,9 @@ int main(int argc, char **argv)
 		cv::blur(gray, blur, cv::Size(15, 15));
 
 		//cv::cvtColor(frame, blur, COLOR_BGR2HSV);
-		
+
 		// cv::inRange(blur, Scalar(0,0,0,0), Scalar(180, 255, 80, 0), edges_mask);
-	
+
 		// cv::Canny(edges_mask, contours, 50, 100);
 
 		cv::Sobel(blur, sobel, blur.depth(), 1, 0, 3, 0.5, 127);
@@ -191,7 +192,7 @@ int main(int argc, char **argv)
 
 		//region_of_interest
 		region_mask = Mat::zeros(height, width, 0);
-		cv::fillConvexPoly(region_mask, polygon, 255);	
+		cv::fillConvexPoly(region_mask, polygon, 255);
 		cv::bitwise_and(contours, region_mask, contours);
 
 		// detect_line_segments
@@ -203,14 +204,13 @@ int main(int argc, char **argv)
 
 		vector<Point2f> left_fit;
 		vector<Point2f> right_fit;
-		
-		double boundary = 0.3;
+
 		double left_region_boundary = width * (1.0 - boundary);
 		double right_region_boundary = width * (boundary);
 
-		for(auto &line_segment : line_segments)
+		for (auto &line_segment : line_segments)
 		{
-			
+
 			int x1 = line_segment[0];
 			int y1 = line_segment[1];
 			int x2 = line_segment[2];
@@ -231,17 +231,15 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				if(x1 > right_region_boundary && x2 > right_region_boundary)
+				if (x1 > right_region_boundary && x2 > right_region_boundary)
 				{
 					right_fit.push_back(Point2f(slope, intercept));
 				}
 			}
-
-			
 		}
 
 		Point2f left_fit_average = Point2f(0., 0.);
-		for(auto &fit : left_fit)
+		for (auto &fit : left_fit)
 		{
 			left_fit_average.x += fit.x;
 			left_fit_average.y += fit.y;
@@ -253,10 +251,10 @@ int main(int argc, char **argv)
 		{
 			float slope = left_fit_average.x;
 			float intercept = left_fit_average.y;
-			
+
 			int y1 = height;
 			int y2 = int(y1 / 2.0);
-		
+
 			if (slope == 0)
 				slope = 0.1;
 
@@ -264,11 +262,10 @@ int main(int argc, char **argv)
 			int x2 = int((y2 - intercept) / slope);
 
 			lane_lines.push_back(cv::Vec4i(x1, y1, x2, y2));
-
 		}
 
 		Point2f right_fit_average = Point2f(0., 0.);
-		for(auto &fit : right_fit)
+		for (auto &fit : right_fit)
 		{
 			right_fit_average.x += fit.x;
 			right_fit_average.y += fit.y;
@@ -280,7 +277,7 @@ int main(int argc, char **argv)
 		{
 			float slope = right_fit_average.x;
 			float intercept = right_fit_average.y;
-			
+
 			int y1 = height;
 			int y2 = int(y1 / 2);
 
@@ -298,31 +295,30 @@ int main(int argc, char **argv)
 
 		if (lane_lines.size() != 0)
 		{
-			for(auto &line : lane_lines)
+			for (auto &line : lane_lines)
 			{
 				int x1 = line[0];
 				int y1 = line[1];
 				int x2 = line[2];
 				int y2 = line[3];
 
-				cv::line(line_image, Point(x1, y1), Point(x2, y2), Scalar(125,125,125), 6);
+				cv::line(line_image, Point(x1, y1), Point(x2, y2), Scalar(125, 125, 125), 6);
 			}
 		}
-		
+
 		cv::addWeighted(view_frame, 0.8, line_image, 1, 1, view_frame);
 
 		// get_steering_angle
 		double x_offset = 0.;
 		double y_offset = 0.;
 
-		if(lane_lines.size() == 2)
+		if (lane_lines.size() == 2)
 		{
 			int left_x2 = lane_lines[0][2];
 			int right_x2 = lane_lines[1][2];
 			int mid = int(width / 2.0);
 			x_offset = (left_x2 + right_x2) / 2.0 - mid;
 			y_offset = int(height / 2.0);
-
 		}
 		else if (lane_lines.size() == 1)
 		{
@@ -341,7 +337,6 @@ int main(int argc, char **argv)
 			x_offset = 0;
 			y_offset = int(height / 2.0);
 		}
-		
 
 		double angle_to_mid_radian = atan(x_offset / y_offset);
 		double angle_to_mid_deg = angle_to_mid_radian * 180.0 / CV_PI;
@@ -355,21 +350,19 @@ int main(int argc, char **argv)
 		int steer_x1 = int(width / 2.0);
 		int steer_y1 = height;
 		int steer_x2 = (steer_x1 - height / 2 / tan(steering_angle_radian));
-		int steer_y2 = int(height/2);
+		int steer_y2 = int(height / 2);
 
 		cv::line(heading_image, Point(steer_x1, steer_y1), Point(steer_x2, steer_y2), Scalar(0, 0, 255), 5);
 
-		cv:addWeighted(view_frame, 0.8, heading_image, 1, 1, view_frame);
+	cv:
+		addWeighted(view_frame, 0.8, heading_image, 1, 1, view_frame);
 
-		
 		int deviation = steering_angle - 90;
 		// ROS_INFO("deviation  %d", deviation);
-
 
 		// 라인 관련 메세지(라인 각도, 라인 수)
 		traffic_state_msg.line_state = deviation;
 		traffic_state_msg.line_count = lane_lines.size();
-
 
 		// ---------  주차 구역 검출  -------------
 		//ipm.applyHomography(frame, outputFrame);
@@ -395,6 +388,9 @@ int main(int argc, char **argv)
 
 		//ROS_INFO("rect_cont.size() %d", rect_cont.size());
 
+		double min_x = 9999.0;
+		double max_x = 0.;
+
 		if (rect_cont.size() == 1)
 		{
 			for (size_t i = 0; i < rect_cont.size(); i++)
@@ -409,25 +405,50 @@ int main(int argc, char **argv)
 					{
 						line(view_frame, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
-						for (int k = 0; k < approx_size - 1; k++)
+						for (int k = 0; k < approx_size - 1; k++){
 							line(view_frame, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+							ROS_INFO("approx[%d].x %f", k, approx[k].x);
+							ROS_INFO("approx[%d].y %f", k, approx[k].y);
+							ROS_INFO("approx[%d].x %f", k+1, approx[k+1].x);
+							ROS_INFO("approx[%d].y %f", k+1, approx[k+1].y);
+						}
 
 						for (int k = 0; k < approx_size; k++)
 							circle(view_frame, approx[k], 3, Scalar(0, 0, 255));
 					}
 
 					// 꼭지점의 개수가 4개일때 출력
-					if(approx_size == 4 && isContourConvex(Mat(approx)))
+					if (approx_size == 4 && isContourConvex(Mat(approx)))
 					{
-						approx_size = 4;
+						for (int k = 0; k < approx_size; k++)
+						{
+							if (approx[k].x < min_x)
+							{
+								min_x = approx[k].x;
+							}
+
+							if (approx[k].x > max_x)
+							{
+								max_x = approx[k].x;
+							}
+						}
+						if ((max_x - min_x) > width / 2.0)
+							approx_size = 4;
+						else
+							approx_size = 0;
+						// ROS_INFO("max - min = %f , approx_size = %d", max_x - min_x, approx_size);
+						// ROS_INFO("approx[%d][0].x %f", i, approx[0].x);
+						// ROS_INFO("approx[%d][0].y %f", i, approx[0].y);
+						// ROS_INFO("approx[%d][1].x %f", i, approx[1].x);
+						// ROS_INFO("approx[%d][1].y %f", i, approx[1].y);
 					}
-					else 
+					else
 					{
 						approx_size = 0;
 					}
 				} //(fabs(contourArea(Mat(approx))) > 100)
-			} // for (size_t i = 0; i < rect_cont.size(); i++)
-		}//(rect_cont.size() == 1)
+			}	  // for (size_t i = 0; i < rect_cont.size(); i++)
+		}		  //(rect_cont.size() == 1)
 
 		traffic_state_msg.station_area = approx_size;
 
@@ -520,7 +541,7 @@ int main(int argc, char **argv)
 		// 메세지 퍼블리싱
 		traffic_pub.publish(traffic_state_msg);
 
-		// cv::imshow("view_frame", view_frame);
+		cv::imshow("view_frame", view_frame);
 
 		if (!frame.empty())
 		{
