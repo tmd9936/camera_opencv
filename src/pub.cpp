@@ -541,7 +541,7 @@ int main(int argc, char **argv)
 		// 메세지 퍼블리싱
 		traffic_pub.publish(traffic_state_msg);
 
-		cv::imshow("view_frame", view_frame);
+		// cv::imshow("view_frame", view_frame);
 
 		if (!frame.empty())
 		{
