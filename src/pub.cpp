@@ -162,21 +162,25 @@ int main(int argc, char **argv)
 		// ---------  선분 검출 -------------
 
 		// detect_edges
-		cv::cvtColor(frame, gray, COLOR_BGR2GRAY);
-		cv::blur(gray, blur, cv::Size(15, 15));
+		//cv::cvtColor(frame, gray, COLOR_BGR2GRAY);
+		//cv::blur(gray, blur, cv::Size(15, 15));
 
-		//cv::cvtColor(frame, blur, COLOR_BGR2HSV);
+		cv::cvtColor(frame, blur, COLOR_BGR2HSV);
 
-		// cv::inRange(blur, Scalar(0,0,0,0), Scalar(180, 255, 80, 0), edges_mask);
+		cv::blur(blur, blur, cv::Size(15, 15));
+		
+		cv::inRange(blur, Scalar(0,0,0,0), Scalar(180, 255, 80, 0), edges_mask);
 
-		// cv::Canny(edges_mask, contours, 50, 100);
+		cv::Canny(edges_mask, contours, 50, 100);
 
-		cv::Sobel(blur, sobel, blur.depth(), 1, 0, 3, 0.5, 127);
-		cv::threshold(sobel, contours, 145, 255, CV_THRESH_BINARY);
+		//cv::Sobel(blur, sobel, blur.depth(), 1, 0, 3, 0.5, 127);
+		//cv::threshold(sobel, contours, 145, 255, CV_THRESH_BINARY);
 
 		//morphological closing 영역의 구멍 메우기
-		dilate(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-		erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		//dilate(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		//dilate(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		
+		//erode(contours, contours, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 
 		// ld.setLineLengthAndGap(20, 120);
 		// ld.setMinVote(55);
@@ -201,7 +205,7 @@ int main(int argc, char **argv)
 
 		// detect_line_segments
 		vector<cv::Vec4i> line_segments;
-		cv::HoughLinesP(contours, line_segments, 1, CV_PI / 180.0, 55, 5, 150);
+		cv::HoughLinesP(contours, line_segments, 1, CV_PI / 180.0, 10, 5, 150);
 
 		// average_slope_intercept
 		vector<Vec4i> lane_lines;
