@@ -57,6 +57,10 @@ int deviation = 0;
 
 double boundary = 0.15;
 
+// 외쪽 오른쪽 선분 검출 결과
+int is_left = 0;
+int is_right = 0;
+
 void initParams(ros::NodeHandle *nh_priv)
 {
 	nh_priv->param("boundary", boundary, boundary);
@@ -208,6 +212,9 @@ int main(int argc, char **argv)
 		double left_region_boundary = width * (1.0 - boundary);
 		double right_region_boundary = width * (boundary);
 
+		is_left = 0;
+		is_right = 0;
+
 		for (auto &line_segment : line_segments)
 		{
 
@@ -249,6 +256,9 @@ int main(int argc, char **argv)
 
 		if (left_fit.size() > 0)
 		{
+			// 왼쪽 길이 있으면 1을 대입
+			is_left = 1;
+
 			float slope = left_fit_average.x;
 			float intercept = left_fit_average.y;
 
@@ -275,6 +285,9 @@ int main(int argc, char **argv)
 
 		if (right_fit.size() > 0)
 		{
+			// 오른쪽 길이 있으면 1을 대입
+			is_right = 1;
+
 			float slope = right_fit_average.x;
 			float intercept = right_fit_average.y;
 
@@ -354,7 +367,6 @@ int main(int argc, char **argv)
 
 		cv::line(heading_image, Point(steer_x1, steer_y1), Point(steer_x2, steer_y2), Scalar(0, 0, 255), 5);
 
-	cv:
 		addWeighted(view_frame, 0.8, heading_image, 1, 1, view_frame);
 
 		int deviation = steering_angle - 90;
@@ -362,7 +374,8 @@ int main(int argc, char **argv)
 
 		// 라인 관련 메세지(라인 각도, 라인 수)
 		traffic_state_msg.line_state = deviation;
-		traffic_state_msg.line_count = lane_lines.size();
+		traffic_state_msg.left_line_count = is_left;
+		traffic_state_msg.right_line_count = is_right;
 
 		// ---------  주차 구역 검출  -------------
 		//ipm.applyHomography(frame, outputFrame);
@@ -407,10 +420,10 @@ int main(int argc, char **argv)
 
 						for (int k = 0; k < approx_size - 1; k++){
 							line(view_frame, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
-							ROS_INFO("approx[%d].x %f", k, approx[k].x);
-							ROS_INFO("approx[%d].y %f", k, approx[k].y);
-							ROS_INFO("approx[%d].x %f", k+1, approx[k+1].x);
-							ROS_INFO("approx[%d].y %f", k+1, approx[k+1].y);
+							//ROS_INFO("approx[%d].x %f", k, approx[k].x);
+							//ROS_INFO("approx[%d].y %f", k, approx[k].y);
+							//ROS_INFO("approx[%d].x %f", k+1, approx[k+1].x);
+							//ROS_INFO("approx[%d].y %f", k+1, approx[k+1].y);
 						}
 
 						for (int k = 0; k < approx_size; k++)
@@ -432,7 +445,8 @@ int main(int argc, char **argv)
 								max_x = approx[k].x;
 							}
 						}
-						if ((max_x - min_x) > width / 2.0)
+						//if ((max_x - min_x) > width / 2.0)
+						if ((max_x - min_x) > 180.0)
 							approx_size = 4;
 						else
 							approx_size = 0;
