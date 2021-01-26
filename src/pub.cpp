@@ -36,6 +36,7 @@
 
 #define RED 0
 #define GREEN 1
+#define NONE 2
 
 using namespace std;
 using namespace cv;
@@ -488,6 +489,8 @@ int main(int argc, char **argv)
 		// 수정 필요한 곳
 		HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 100, 60, 80, 30, 90);
 
+		int traffic_color = NONE;
+
 		// ROS_INFO("cnt = %d", circles.size());
 		for (size_t i = 0; i < circles.size(); i++)
 		{
@@ -535,12 +538,18 @@ int main(int argc, char **argv)
 				if (mean_hue_light > 30 && mean_hue_light < 60 || mean_hue_light > 170)
 				{
 					color = "red";
-					traffic_state_msg.traffic_color = RED;
+					//traffic_state_msg.traffic_color = RED;
+					traffic_color = RED;
 				}
 				else if (mean_hue_light > 80 && mean_hue_light < 110)
 				{
 					color = "green";
-					traffic_state_msg.traffic_color = GREEN;
+					//traffic_state_msg.traffic_color = GREEN;
+					traffic_color = GREEN;
+				}
+				else 
+				{
+					traffic_color = NONE;
 				}
 				putText(view_frame, color, center, CV_FONT_HERSHEY_SIMPLEX, 0.75, Scalar::all(255));
 				Point center_plus_y(circles[i][0], circles[i][1] + 20);
@@ -549,6 +558,7 @@ int main(int argc, char **argv)
 				//waitKey(1);
 			}
 		}
+		traffic_state_msg.traffic_color = traffic_color;
 
 		// -------------------------------------
 
@@ -559,7 +569,7 @@ int main(int argc, char **argv)
 		// 메세지 퍼블리싱
 		traffic_pub.publish(traffic_state_msg);
 
-		// cv::imshow("view_frame", view_frame);
+		cv::imshow("view_frame", view_frame);
 
 		if (!frame.empty())
 		{
