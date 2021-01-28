@@ -474,10 +474,11 @@ int main(int argc, char **argv)
 		// ---------  신호등 색 검출  -------------
 		Mat frame_light;
 
-		// frame.copyTo(frame_light);
-		frame_light = frame.clone();
+		frame.copyTo(frame_light);
+		int traffic_color = NONE;
+		//frame_light = frame.clone();
 
-		frame_light = frame_light(Range(0, frame_light.size().height * 2 / 3), Range::all());
+		//frame_light = frame_light(Range(0, frame_light.size().height * 2 / 3), Range::all());
 
 		Mat gray_light;
 		cvtColor(frame_light, gray_light, CV_BGR2GRAY);
@@ -487,9 +488,7 @@ int main(int argc, char **argv)
 		// 원 검출
 		vector<Vec3f> circles;
 		// 수정 필요한 곳
-		HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 100, 60, 80, 30, 90);
-
-		int traffic_color = NONE;
+		HoughCircles(blur_light, circles, CV_HOUGH_GRADIENT, 1, 100, 60, 80, 13, 60);
 
 		// ROS_INFO("cnt = %d", circles.size());
 		for (size_t i = 0; i < circles.size(); i++)
