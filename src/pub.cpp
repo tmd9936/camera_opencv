@@ -108,11 +108,11 @@ int main(int argc, char **argv)
 	cv::UMat gray, blur, sobel;
 	cv::Mat contours, region_mask, edges_mask;
 
-	vector<Point> polygon;
-	polygon.push_back(Point(0, height));
-	polygon.push_back(Point(0, height / 2));
-	polygon.push_back(Point(width, height / 2));
-	polygon.push_back(Point(width, height));
+	//vector<Point> polygon;
+	//polygon.push_back(Point(0, height));
+	//polygon.push_back(Point(0, height / 2));
+	//polygon.push_back(Point(width, height / 2));
+	//polygon.push_back(Point(width, height));
 
 	// 왼쪽 오른쪽 구역 직선의 방성식을 얻기위한 mat 데이터
 	cv::Mat slice_line_mat = cv::Mat::zeros(height, width, CV_8SC1);
@@ -135,20 +135,20 @@ int main(int argc, char **argv)
 
 	sensor_msgs::ImagePtr msg;
 
-	origPoints.push_back(Point2f(IPM_BOTTOM_LEFT, (height - 120)));
-	origPoints.push_back(Point2f(IPM_BOTTOM_RIGHT, height - 120));
-	origPoints.push_back(Point2f(IPM_RIGHT, height / 2 + 100));
-	origPoints.push_back(Point2f(IPM_LEFT, height / 2 + 100));
+	//origPoints.push_back(Point2f(IPM_BOTTOM_LEFT, (height - 120)));
+	//origPoints.push_back(Point2f(IPM_BOTTOM_RIGHT, height - 120));
+	//origPoints.push_back(Point2f(IPM_RIGHT, height / 2 + 100));
+	//origPoints.push_back(Point2f(IPM_LEFT, height / 2 + 100));
 
 	// The 4-points correspondences in the destination image
 
-	dstPoints.push_back(Point2f(0, height));
-	dstPoints.push_back(Point2f(width, height));
-	dstPoints.push_back(Point2f(width, 0));
-	dstPoints.push_back(Point2f(0, 0));
+	//dstPoints.push_back(Point2f(0, height));
+	//dstPoints.push_back(Point2f(width, height));
+	//dstPoints.push_back(Point2f(width, 0));
+	//dstPoints.push_back(Point2f(0, 0));
 
 	// IPM object
-	ipm.setIPM(Size(width, height), Size(width, height), origPoints, dstPoints);
+	//ipm.setIPM(Size(width, height), Size(width, height), origPoints, dstPoints);
 
 	// Process
 	//clock_t begin = clock();
